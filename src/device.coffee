@@ -15,7 +15,7 @@ _doc_element = window.document.documentElement
 
 # The client user agent string.
 # Lowercase, so we can use the more efficient indexOf(), instead of Regex
-_user_agent = window.navigator.userAgent.toLowerCase()
+_user_agent = window.navigator.userAgent
 
 
 # Main functions
@@ -55,6 +55,54 @@ device.blackberryTablet = ->
 
 device.windows = ->
   _find 'windows'
+  
+# add support detect browser version
+device.browser = ->
+  obj =
+    name: ""
+    version: ""
+    webkit: false
+    mozilla: false
+
+  unless (verOffset = _user_agent.indexOf("Opera")) is -1
+    obj.name = "opera"
+    obj.version = _user_agent.substring(verOffset + 6)
+    obj.version = _user_agent.substring(verOffset + 8)  unless (verOffset = _user_agent.indexOf("Version")) is -1
+  else unless (verOffset = _user_agent.indexOf("MSIE")) is -1
+    obj.name = "msie"
+    obj.version = _user_agent.substring(verOffset + 5)
+  else unless _user_agent.indexOf("Trident") is -1
+    obj.name = "msie"
+    start = _user_agent.indexOf("rv:") + 3
+    end = start + 4
+    obj.version = _user_agent.substring(start, end)
+  else unless (verOffset = _user_agent.indexOf("Chrome")) is -1
+    obj.webkit = true
+    obj.name = "chrome"
+    obj.version = _user_agent.substring(verOffset + 7)
+  else unless (verOffset = _user_agent.indexOf("Safari")) is -1
+    obj.webkit = true
+    obj.name = "safari"
+    obj.version = _user_agent.substring(verOffset + 7)
+    obj.version = _user_agent.substring(verOffset + 8)  unless (verOffset = _user_agent.indexOf("Version")) is -1
+  else unless (verOffset = _user_agent.indexOf("AppleWebkit")) is -1
+    obj.webkit = true
+    obj.name = "safari"
+    obj.version = _user_agent.substring(verOffset + 7)
+    obj.version = _user_agent.substring(verOffset + 8)  unless (verOffset = _user_agent.indexOf("Version")) is -1
+  else unless (verOffset = _user_agent.indexOf("Firefox")) is -1
+    obj.mozilla = true
+    obj.name = "firefox"
+    obj.version = _user_agent.substring(verOffset + 8)
+  else if (nameOffset = _user_agent.lastIndexOf(" ") + 1) < (verOffset = _user_agent.lastIndexOf("/"))
+    obj.name = _user_agent.substring(nameOffset, verOffset)
+    obj.version = _user_agent.substring(verOffset + 1)
+  obj.version = obj.version.substring(0, ix)  unless (ix = obj.version.indexOf(";")) is -1
+  obj.version = obj.version.substring(0, ix)  unless (ix = obj.version.indexOf(" ")) is -1
+  majorVersion = parseInt("" + obj.version, 10)
+  majorVersion = parseInt(navigator.appVersion, 10)  if isNaN(majorVersion)
+  obj.version = majorVersion
+  obj
 
 device.windowsPhone = ->
   device.windows() and _find 'phone'
@@ -106,7 +154,7 @@ device.noConflict = ->
 
 # Simple UA string search
 _find = (needle) ->
-  _user_agent.indexOf(needle) isnt -1
+  _user_agent.toLowerCase().indexOf(needle) isnt -1
 
 # Check if docElement already has a given class.
 _hasClass = (class_name) ->
@@ -174,6 +222,13 @@ else
 if device.cordova()
   _addClass "cordova"
 
+browser = device.browser()
+_addClass browser.name  if browser.name
+_addClass browser.name + "-" + browser.version  if browser.version and browser.name
+_addClass "webkit"  if browser.webkit
+_addClass "mozilla"  if browser.mozilla
+_addClass "opera-mini"  if (/Opera Mini/i).test(_user_agent)
+_addClass "ie-mobile"  if (/IEMobile/i).test(_user_agent)
 
 # Orientation Handling
 # --------------------
